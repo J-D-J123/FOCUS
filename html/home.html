@@ -1,0 +1,97 @@
+<!-- ChatGPT Created home page -->
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Study Data Viewer</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-100 text-gray-900">
+  <div class="max-w-4xl mx-auto p-6 mt-10 bg-white rounded-xl shadow">
+    <h1 class="text-3xl font-bold mb-6 text-center">📘 Study Data</h1>
+    <input type="file" id="dbfile" accept=".db" class="mb-4 block mx-auto">
+    <canvas id="studyChart" class="mb-6"></canvas>
+    <div id="output" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+  </div>
+
+  <script>
+    let SQL, db;
+
+    initSqlJs({ locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${file}` })
+      .then(sql => SQL = sql);
+
+    document.getElementById('dbfile').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const buffer = await file.arrayBuffer();
+      db = new SQL.Database(new Uint8Array(buffer));
+
+      const tables = db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name != 'classes'");
+      const output = document.getElementById('output');
+      output.innerHTML = '';
+
+      const labels = [];
+      const studyData = [];
+
+      tables[0]?.values.forEach(([table]) => {
+        const res = db.exec(`SELECT SUM(hours) as total, COUNT(*) as sessions FROM "${table}"`);
+        const [total, sessions] = res[0]?.values[0] || [0, 0];
+
+        // Card container
+        const div = document.createElement('div');
+        div.className = "p-4 bg-blue-50 rounded shadow cursor-pointer";
+        div.innerHTML = `
+          <h2 class="text-xl font-semibold">${table}</h2>
+          <p>Total Studied: ${total.toFixed(2)} minutes</p>
+          <p>Sessions: ${sessions}</p>
+          <div class="session-logs mt-2 hidden"></div>
+        `;
+
+        // Click handler to show per-session logs
+        div.addEventListener('click', () => {
+          const logsDiv = div.querySelector('.session-logs');
+          if (logsDiv.classList.contains('hidden')) {
+            const res = db.exec(`SELECT hours FROM "${table}"`);
+            logsDiv.innerHTML = res[0]?.values.map((val, i) =>
+              `<p>Session ${i + 1}: ${val[0].toFixed(2)} minutes</p>`
+            ).join('') || '<p>No sessions logged.</p>';
+            logsDiv.classList.remove('hidden');
+          } else {
+            logsDiv.classList.add('hidden');
+          }
+        });
+
+        output.appendChild(div);
+        labels.push(table);
+        studyData.push(total);
+      });
+
+      // Render bar chart
+      const ctx = document.getElementById('studyChart').getContext('2d');
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Minutes Studied',
+            data: studyData,
+            backgroundColor: '#60a5fa'
+          }]
+        },
+        options: {
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                stepSize: 10
+              }
+            }
+          }
+        }
+      });
+    });
+  </script>
+</body>
+</html>
