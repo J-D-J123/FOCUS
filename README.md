@@ -1,4 +1,4 @@
-# FOCUS — Forced Organization for Conscious Usage and Stillness
+# FOCUS 
 
 **Beyond the Code: Human-Centered Tech Hackathon**  
 **April 2025**
