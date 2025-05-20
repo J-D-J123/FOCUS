@@ -24,7 +24,7 @@ Built for the **Beyond the Code: Human-Centered Tech Hackathon (April 2025)**, F
 
 ## 🚀 Built With
 
-- C
+- C Programming Language 
 - [OpenAI API](https://openai.com/) (for database functions)
 
 ---
